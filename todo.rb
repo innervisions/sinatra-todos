@@ -52,8 +52,8 @@ post "/lists" do
 end
 
 get "/lists/:id" do
-  id = params[:id].to_i
-  @list = session[:lists][id]
+  @list_id = params[:id].to_i
+  @list = session[:lists][@list_id]
   erb :list
 end
 
@@ -86,4 +86,26 @@ post "/lists/:id/destroy" do
   session[:lists].delete_at(id)
   session[:success] = "The list has been deleted."
   redirect "/lists"
+end
+
+# Returns a message if a todo name is invalid.
+def error_for_todo(name)
+  return if (1..100).cover?(name.size)
+  "Todo  must be between 1 and 100 characters."
+end
+
+# Adds a todo to a list.
+post "/lists/:list_id/todos" do
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+  text = params[:todo].strip
+  error = error_for_todo(text)
+  if error
+    session[:error] = error
+    erb :list
+  else
+    @list[:todos] << { name: text, completed: false }
+    session[:success] = "The todo was added."
+    redirect "/lists/#{@list_id}"
+  end
 end

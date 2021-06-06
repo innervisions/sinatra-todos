@@ -8,11 +8,15 @@
     </ul>
   </header>
   <ul>
-  <% @list[:todos].each_with_index do |todo, idx| %>
+    <% @list[:todos].each_with_index do |todo, idx| %>
     <li>
       <h3><%= todo[:name] %></h3>
+      <form action="/lists/<%= @list_id %>/todos/<%= idx %>/destroy"
+        method="post" class="delete">
+        <button type="submit">Delete</button>
+      </form>
     </li>
-  <% end %>
+    <% end %>
   </ul>
 </section>
 
@@ -22,7 +26,8 @@
       <label for="todo">Enter a new todo item:</label>
     </dt>
     <dd>
-      <input name="todo" id="todo" placeholder="Something to do" type="text" value="<%= params[:todo] %>">
+      <input name="todo" id="todo" placeholder="Something to do" type="text"
+        value="<%= params[:todo] %>">
     </dd>
   </dl>
   <fieldset class="actions">

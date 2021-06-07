@@ -112,21 +112,30 @@ end
 
 # Deletes a todo from a list.
 post "/lists/:list_id/todos/:todo_id/destroy" do
-  list_id = params[:list_id].to_i
-  list = session[:lists][list_id]
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
   todo_id = params[:todo_id].to_i
   list[:todos].delete_at(todo_id)
   session[:success] = "The todo has been deleted."
-  redirect "/lists/#{list_id}"
+  redirect "/lists/#{@list_id}"
 end
 
 # Updates the status of a todo.
 post "/lists/:list_id/todos/:todo_id" do
-  list_id = params[:list_id].to_i
-  list = session[:lists][list_id]
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
   todo_id = params[:todo_id].to_i
   is_completed = (params[:completed] == "true")
-  list[:todos][todo_id][:completed] = is_completed
+  @list[:todos][todo_id][:completed] = is_completed
   session[:success] = "The todo has been updated."
-  redirect "/lists/#{list_id}"
+  redirect "/lists/#{@list_id}"
+end
+
+# Completes all todos in a list.
+post "/lists/:list_id/complete_all" do
+  @list_id = params[:list_id].to_i
+  @list = session[:lists][@list_id]
+  @list[:todos].each { |todo| todo[:completed] = true }
+  session[:success] = "All todos completed."
+  redirect "/lists/#{@list_id}"
 end

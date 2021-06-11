@@ -9,6 +9,24 @@ configure do
   set :session_secret, "secret"
 end
 
+helpers do
+  def list_complete?(list)
+    todos_count(list) > 0 && todos_remaining_count(list) == 0
+  end
+
+  def list_class(list)
+    "complete" if list_complete?(list)
+  end
+
+  def todos_remaining_count(list)
+    list[:todos].count { |todo| !todo[:completed] }
+  end
+
+  def todos_count(list)
+    list[:todos].size
+  end
+end
+
 before do
   session[:lists] ||= []
 end
@@ -115,7 +133,7 @@ post "/lists/:list_id/todos/:todo_id/destroy" do
   @list_id = params[:list_id].to_i
   @list = session[:lists][@list_id]
   todo_id = params[:todo_id].to_i
-  list[:todos].delete_at(todo_id)
+  @list[:todos].delete_at(todo_id)
   session[:success] = "The todo has been deleted."
   redirect "/lists/#{@list_id}"
 end

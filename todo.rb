@@ -1,10 +1,9 @@
 require "sinatra"
-require "sinatra/reloader"
+require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
 
 configure do
-  set :port, 8080
   enable :sessions
   set :session_secret, "secret"
 end

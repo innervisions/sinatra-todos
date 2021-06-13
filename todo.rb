@@ -88,16 +88,24 @@ post "/lists" do
   end
 end
 
+def load_list(index)
+  list = session[:lists][index] if index && session[:lists][index]
+  return list if list
+
+  session[:error] = "The specified list was not found."
+  redirect "/lists"
+end
+
 get "/lists/:id" do
   @list_id = params[:id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   erb :list
 end
 
 # Edit an existing todo list.
 get "/lists/:id/edit" do
   id = params[:id].to_i
-  @list = session[:lists][id]
+  @list = load_list(id)
   erb :edit_list
 end
 
@@ -105,7 +113,7 @@ end
 post "/lists/:id" do
   list_name = params[:list_name].strip
   id = params[:id].to_i
-  @list = session[:lists][id]
+  @list = load_list(id)
   error = error_for_list_name(list_name)
   if error
     session[:error] = error
@@ -134,7 +142,7 @@ end
 # Adds a todo to a list.
 post "/lists/:list_id/todos" do
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   text = params[:todo].strip
   error = error_for_todo(text)
   if error
@@ -150,7 +158,7 @@ end
 # Deletes a todo from a list.
 post "/lists/:list_id/todos/:todo_id/destroy" do
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   todo_id = params[:todo_id].to_i
   @list[:todos].delete_at(todo_id)
   session[:success] = "The todo has been deleted."
@@ -160,7 +168,7 @@ end
 # Updates the status of a todo.
 post "/lists/:list_id/todos/:todo_id" do
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   todo_id = params[:todo_id].to_i
   is_completed = (params[:completed] == "true")
   @list[:todos][todo_id][:completed] = is_completed
@@ -171,7 +179,7 @@ end
 # Completes all todos in a list.
 post "/lists/:list_id/complete_all" do
   @list_id = params[:list_id].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   @list[:todos].each { |todo| todo[:completed] = true }
   session[:success] = "All todos completed."
   redirect "/lists/#{@list_id}"

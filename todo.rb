@@ -25,6 +25,24 @@ helpers do
   def todos_count(list)
     list[:todos].size
   end
+
+  def sort_lists(lists)
+    lists.each_with_index do |list, idx|
+      yield(list, idx) unless list_complete?(list)
+    end
+    lists.each_with_index do |list, idx|
+      yield(list, idx) if list_complete?(list)
+    end
+  end
+
+  def sort_todos(todos)
+    todos.each_with_index do |todo, idx|
+      yield(todo, idx) unless todo[:completed]
+    end
+    todos.each_with_index do |todo, idx|
+      yield(todo, idx) if todo[:completed]
+    end
+  end
 end
 
 before do

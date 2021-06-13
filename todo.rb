@@ -4,7 +4,7 @@ require "sinatra/content_for"
 require "tilt/erubis"
 
 configure do
-  set :erb, :escape_html => true
+  set :erb, escape_html: true
   enable :sessions
   set :session_secret, "secret"
   set :port, 8080
@@ -44,7 +44,6 @@ helpers do
       yield(todo, idx) if todo[:completed]
     end
   end
-
 end
 
 before do
@@ -130,14 +129,18 @@ end
 post "/lists/:id/destroy" do
   id = params[:id].to_i
   session[:lists].delete_at(id)
-  session[:success] = "The list has been deleted."
-  redirect "/lists"
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    "/lists"
+  else
+    session[:success] = "The list has been deleted."
+    redirect "/lists"
+  end
 end
 
 # Returns a message if a todo name is invalid.
 def error_for_todo(name)
   return if (1..100).cover?(name.size)
-  "Todo  must be between 1 and 100 characters."
+  "Todo must be between 1 and 100 characters."
 end
 
 # Adds a todo to a list.
@@ -162,8 +165,12 @@ post "/lists/:list_id/todos/:todo_id/destroy" do
   @list = load_list(@list_id)
   todo_id = params[:todo_id].to_i
   @list[:todos].delete_at(todo_id)
-  session[:success] = "The todo has been deleted."
-  redirect "/lists/#{@list_id}"
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    status 204
+  else
+    session[:success] = "The todo has been deleted."
+    redirect "/lists/#{@list_id}"
+  end
 end
 
 # Updates the status of a todo.

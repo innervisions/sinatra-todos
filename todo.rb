@@ -7,7 +7,7 @@ configure do
   set :erb, escape_html: true
   enable :sessions
   set :session_secret, "secret"
-  set :port, 8080
+  # set :port, 8080
 end
 
 helpers do
@@ -28,22 +28,19 @@ helpers do
   end
 
   def sort_lists(lists)
-    lists.each_with_index do |list, idx|
-      yield(list, idx) unless list_complete?(list)
-    end
-    lists.each_with_index do |list, idx|
-      yield(list, idx) if list_complete?(list)
-    end
+    lists.each { |list| yield(list) unless list_complete?(list) }
+    lists.each { |list| yield(list) if list_complete?(list) }
   end
 
   def sort_todos(todos)
-    todos.each do |todo|
-      yield(todo) unless todo[:completed]
-    end
-    todos.each do |todo|
-      yield(todo) if todo[:completed]
-    end
+    todos.each { |todo| yield(todo) unless todo[:completed] }
+    todos.each { |todo| yield(todo) if todo[:completed] }
   end
+end
+
+def next_element_id(elements)
+  max = elements.map { |element| element[:id] }.max || 0
+  max + 1
 end
 
 before do
@@ -82,15 +79,16 @@ post "/lists" do
     session[:error] = error
     erb :new_list
   else
-    session[:lists] << { name: list_name, todos: [] }
+    id = next_element_id(session[:lists])
+    session[:lists] << { id: id, name: list_name, todos: [] }
     session[:success] = "The list has been created."
     redirect "/lists"
   end
 end
 
 def load_list(index)
-  list = session[:lists][index] if index && session[:lists][index]
-  return list if list
+  target = session[:lists].find { |list| list[:id] == index }
+  return target if target
 
   session[:error] = "The specified list was not found."
   redirect "/lists"
@@ -128,7 +126,8 @@ end
 # Deletes a todo list.
 post "/lists/:id/destroy" do
   id = params[:id].to_i
-  session[:lists].delete_at(id)
+  list = load_list(id)
+  session[:lists].delete(list)
   if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
     "/lists"
   else
@@ -143,11 +142,6 @@ def error_for_todo(name)
   "Todo must be between 1 and 100 characters."
 end
 
-def next_todo_id(todos)
-  max = todos.map { |todo| todo[:id] }.max || 0
-  max + 1
-end
-
 # Adds a todo to a list.
 post "/lists/:list_id/todos" do
   @list_id = params[:list_id].to_i
@@ -158,7 +152,7 @@ post "/lists/:list_id/todos" do
     session[:error] = error
     erb :list
   else
-    id = next_todo_id(@list[:todos])
+    id = next_element_id(@list[:todos])
     @list[:todos] << { id: id, name: text, completed: false }
     session[:success] = "The todo was added."
     redirect "/lists/#{@list_id}"

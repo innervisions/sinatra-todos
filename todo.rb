@@ -3,6 +3,37 @@ require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
 
+class SessionPeristence
+  def initialize(session)
+    @session = session
+    @session[:lists] ||= []
+  end
+
+  def find_list(id)
+    @session[:lists].find { |list| list[:id] == id }
+  end
+
+  def all_lists
+    @session[:lists]
+  end
+
+  def create_new_list(list_name)
+    id = next_element_id(@session[:lists])
+    @session[:lists] << { id: id, name: list_name, todos: [] }
+  end
+
+  def delete_list(id)
+    @session[:lists].reject! { |list| list[:id] == id }
+  end
+
+  private
+
+  def next_element_id(elements)
+    max = elements.map { |element| element[:id] }.max || 0
+    max + 1
+  end
+end
+
 configure do
   set :erb, escape_html: true
   enable :sessions
@@ -38,13 +69,8 @@ helpers do
   end
 end
 
-def next_element_id(elements)
-  max = elements.map { |element| element[:id] }.max || 0
-  max + 1
-end
-
 before do
-  session[:lists] ||= []
+  @storage = SessionPeristence.new(session)
 end
 
 get "/" do
@@ -53,7 +79,7 @@ end
 
 # View list of lists
 get "/lists" do
-  @lists = session[:lists]
+  @lists = @storage.all_lists
   erb :lists
 end
 
@@ -66,7 +92,7 @@ end
 def error_for_list_name(name)
   if !(1..100).cover?(name.size)
     "List name must be between 1 and 100 characters."
-  elsif session[:lists].any? { |list| list[:name] == name }
+  elsif @storage.all_lists.any? { |list| list[:name] == name }
     "List name must be unique."
   end
 end
@@ -79,15 +105,14 @@ post "/lists" do
     session[:error] = error
     erb :new_list
   else
-    id = next_element_id(session[:lists])
-    session[:lists] << { id: id, name: list_name, todos: [] }
+    @storage.create_new_list(list_name)
     session[:success] = "The list has been created."
     redirect "/lists"
   end
 end
 
 def load_list(index)
-  target = session[:lists].find { |list| list[:id] == index }
+  target = @storage.find_list(index)
   return target if target
 
   session[:error] = "The specified list was not found."
@@ -126,8 +151,7 @@ end
 # Deletes a todo list.
 post "/lists/:id/destroy" do
   id = params[:id].to_i
-  list = load_list(id)
-  session[:lists].delete(list)
+  @storage.delete_list(id)
   if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
     "/lists"
   else

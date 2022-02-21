@@ -26,6 +26,33 @@ class SessionPeristence
     @session[:lists].reject! { |list| list[:id] == id }
   end
 
+  def update_list_name(id, list_name)
+    list = find_list(id)
+    list[:name] = list_name
+  end
+
+  def create_new_todo(list_id, todo_name)
+    list = find_list(list_id)
+    id = next_element_id(list)
+    list[:todos] << { id: id, name: todo_name, completed: false }
+  end
+
+  def delete_todo_from_list(list_id, todo_id)
+    list = find_list(list_id)
+    list[:todos].reject! { |todo| todo[:id] == todo_id }
+  end
+
+  def update_todo_status(list_id, todo_id, new_status)
+    list = find_list(list_id)
+    target = list[:todos].find { |todo| todo[:id] == todo_id }
+    target[:completed] = new_status
+  end
+
+  def mark_all_todos_as_completed(list_id)
+    list = load_list(list_id)
+    list[:todos].each { |todo| todo[:completed] = true }
+  end
+
   private
 
   def next_element_id(elements)
@@ -142,7 +169,7 @@ post "/lists/:id" do
     session[:error] = error
     erb :edit_list
   else
-    @list[:name] = list_name
+    @storage.update_list_name(id, list_name)
     session[:success] = "The list has been updated."
     redirect "/lists/#{id}"
   end
@@ -176,8 +203,7 @@ post "/lists/:list_id/todos" do
     session[:error] = error
     erb :list
   else
-    id = next_element_id(@list[:todos])
-    @list[:todos] << { id: id, name: text, completed: false }
+    @storage.create_new_todo(@list_id, text)
     session[:success] = "The todo was added."
     redirect "/lists/#{@list_id}"
   end
@@ -188,7 +214,8 @@ post "/lists/:list_id/todos/:todo_id/destroy" do
   @list_id = params[:list_id].to_i
   @list = load_list(@list_id)
   todo_id = params[:todo_id].to_i
-  @list[:todos].reject! { |todo| todo[:id] == todo_id }
+  @storage.delete_todo_from_list(@list_id, todo_id)
+
   if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
     status 204
   else
@@ -203,8 +230,8 @@ post "/lists/:list_id/todos/:todo_id" do
   @list = load_list(@list_id)
   todo_id = params[:todo_id].to_i
   is_completed = (params[:completed] == "true")
-  target = @list[:todos].find { |todo| todo[:id] == todo_id }
-  target[:completed] = is_completed
+  @storage.update_todo_status(@list_id, todo_id, is_completed)
+
   session[:success] = "The todo has been updated."
   redirect "/lists/#{@list_id}"
 end
@@ -212,8 +239,7 @@ end
 # Completes all todos in a list.
 post "/lists/:list_id/complete_all" do
   @list_id = params[:list_id].to_i
-  @list = load_list(@list_id)
-  @list[:todos].each { |todo| todo[:completed] = true }
+  @storage.mark_all_todos_as_completed(@list_id)
   session[:success] = "All todos completed."
   redirect "/lists/#{@list_id}"
 end

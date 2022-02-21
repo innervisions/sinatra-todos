@@ -33,7 +33,7 @@ class SessionPeristence
 
   def create_new_todo(list_id, todo_name)
     list = find_list(list_id)
-    id = next_element_id(list)
+    id = next_element_id(list[:todos])
     list[:todos] << { id: id, name: todo_name, completed: false }
   end
 

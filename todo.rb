@@ -3,7 +3,7 @@ require "sinatra/reloader" if development?
 require "sinatra/content_for"
 require "tilt/erubis"
 
-require_relative "session_persistence"
+require_relative "database_persistence"
 
 configure do
   set :erb, escape_html: true
@@ -41,7 +41,7 @@ helpers do
 end
 
 before do
-  @storage = SessionPeristence.new(session)
+  @storage = DatabasePeristence.new(logger)
 end
 
 get "/" do

@@ -13,7 +13,6 @@ end
 
 configure(:development) do
   also_reload "database_persistence.rb"
-  # set :port, 4567
 end
 
 helpers do

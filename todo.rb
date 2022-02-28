@@ -11,6 +11,10 @@ configure do
   set :session_secret, "secret"
 end
 
+after do
+  @storage.disconnect
+end
+
 configure(:development) do
   also_reload "database_persistence.rb"
 end

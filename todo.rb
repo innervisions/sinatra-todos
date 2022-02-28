@@ -9,6 +9,7 @@ configure do
   set :erb, escape_html: true
   enable :sessions
   set :session_secret, "secret"
+  also_reload "database_persistence.rb"
   # set :port, 4567
 end
 
